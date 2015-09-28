@@ -164,7 +164,7 @@ class MathLexer extend \Doctrine\Common\Lexer
 
 // ----------
 
-$expression = '(1 + 2) / ((3 + 4 * 5) - 6)
+$expression = '(1 + 2) / ((3 + 4 * 5) - 6)'
 
 $lexer = new MathLexer();
 $lexer->setInput($expression);
