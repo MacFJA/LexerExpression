@@ -17,7 +17,6 @@ class RPNSolver
     protected $operatorCallable;
 
     /**
-     *
      * @var RPNOperator[]
      */
     protected $operators = array();
@@ -127,12 +126,15 @@ class RPNSolver
     /**
      * Check if the given token is an operator
      *
-     * @param array $token
+     * @param array|mixed $token
      *
      * @return bool
      */
     protected function isOperator($token) {
         foreach ($this->operators as $operator) {
+            if (!is_array($token) || !array_key_exists('type', $token)) {
+                continue;
+            }
             if ($operator->getType() === $token['type']) {
                 return true;
             }
