@@ -4,6 +4,7 @@
 1. What is Shunting Yard algorithm
 1. The Shunting Yard implementation
 1. The RPN expression Solver
+1. The AST Tree builder
 1. Install
 1. Usage
 1. Similar projects
@@ -18,7 +19,7 @@ The main goal of this library is to transform an expression into a computer unde
 
 As the input of the Shunting Yard is a Doctrine Lexer, the library is not limited to mathematics expression.
 
-The library provide an "evaluator" of the Shunting Yard algorithm output.
+The library provide an "evaluator" of the Shunting Yard algorithm output, or transform it into a AST Tree
 
 ## What is Shunting Yard algorithm
 
@@ -74,6 +75,12 @@ But the main "feature" it's the use of Doctrine Lexer.
 The RPN solver allow you to solve a RPN expression (a list of Doctrine Lexer token).
 It support Operator/Function with any arity.
 
+## The AST Tree builder
+
+The AST Tree builder can transform the RPN expression (a list of Doctrine Lexer token) into an AST Tree.  
+The tree root is a node, the last(final) node (in the **What is Shunting Yard algorithm**, it's the `*` operator).
+This root node is composed of values (leafs of a tree) and nodes (branches).
+
 ### Limitation
 
 The Solver can not solver function with variable arity (or optional parameters)
@@ -113,112 +120,25 @@ var_dump($sy->parse());
 
 ### Very simple Mathematics expression
 
-As simple mathematics expression, with a simple lexer
+3 examples are available in the `test` directory. The expression is `(1 + 2) / ((3 + 4 * 5) - 6)`.
 
-```php
-class MathLexer extend \Doctrine\Common\Lexer
-{
-    const T_PLUS              = 1;
-    const T_MINUS             = 2;
-    const T_MULTIPLY          = 3;
-    const T_DIVIDE            = 4;
-    const T_CLOSE_PARENTHESIS = 5;
-    const T_OPEN_PARENTHESIS  = 6;
-    const T_VALUE             = 7;
-    
-    protected function getCatchablePatterns()
-    {
-        return array(
-            '[0-9][\.0-9]*',
-            '[\(\)\/+*-]'
-        );
-    }
-    
-    protected function getNonCatchablePatterns()
-    {
-        return array(
-            '\s+'
-        );
-    }
-    
-    protected function getType(&$value)
-    {
-        switch ($value) {
-            case '(':
-                return self::T_OPEN_PARENTHESIS;
-            case ')':
-                return self::T_CLOSE_PARENTHESIS;
-            case '+':
-                return self::T_PLUS;
-            case '-':
-                return self::T_MINUS;
-            case '/':
-                return self::T_DIVIDE;
-            case '*':
-                return self::T_MULTIPLY;
-            default:
-                return self::T_VALUE;
-        }
-    }
-}
+ - `test/MathRPN.php`: Just an expression to RPN example
+ - `test/MathSolve.php`: An example with the solver
+ - `test/MathAST.php`: An example with the tree builder
 
-// ----------
+The tree of the expression is:
 
-$expression = '(1 + 2) / ((3 + 4 * 5) - 6)
-
-$lexer = new MathLexer();
-$lexer->setInput($expression);
-
-$shunting = new ShuntingYard();
-$shunting->setLexer($lexer);
-$shunting->setOpenParenthesis($lexer::T_OPEN_PARENTHESIS);
-$shunting->setCloseParenthesis($lexer::T_CLOSE_PARENTHESIS);
-$shunting->setOperators(array(
-    new ShuntingYardOperator(MathLexer::T_MULTIPLY, 2, ShuntingYardOperator::ASSOCIATIVITY_LEFT),
-    new ShuntingYardOperator(MathLexer::T_DIVIDE,   2, ShuntingYardOperator::ASSOCIATIVITY_LEFT),
-    new ShuntingYardOperator(MathLexer::T_PLUS,     1, ShuntingYardOperator::ASSOCIATIVITY_LEFT),
-    new ShuntingYardOperator(MathLexer::T_MINUS,    1, ShuntingYardOperator::ASSOCIATIVITY_LEFT)
-));
-$rpnExpression = $shunting->parse();
-
-// ----------
-
-$solver = new RPNSolver();
-$solver->addOperators(RPNOperator::buildListWithArity(array(
-    $lexer::T_MULTIPLY,
-    $lexer::T_DIVIDE,
-    $lexer::T_PLUS,
-    $lexer::T_MINUS
-), 2));
-
-$solver->setOperatorCallable(function($operator, array $args) {
-    $a = 1;
-    $b = 1;
-    $c = 0;
-    $d = 1;
-
-    $value = null;
-    if ($operator['value'] === '+') {
-        $value = $args[0]['value'] + $args[1]['value'];
-    } elseif ($operator['value'] === '-') {
-        $value = $args[0]['value'] - $args[1]['value'];
-    } elseif ($operator['value'] === '/') {
-        if (0 == $args[1]['value']) {
-            throw new \InvalidArgumentException('Can not divide by 0');
-        }
-        $value = $args[0]['value'] / $args[1]['value'];
-    } elseif ($operator['value'] === '*') {
-        $value = $args[0]['value'] * $args[1]['value'];
-    }
-
-    return array(
-        'type' => Lexer::T_VALUE,
-        'value' => $value,
-        'position' => -1
-    );
-});
-
-var_dump($solver->solve($rpnExpression));
+```
+          "/"
+         /   \
+        /     \
+       /      "-"
+      /      /   \
+     /     "+"    6
+    /     /   \
+  "+"    3    "*"
+ /   \       /   \
+1     2     4     5
 ```
 
 ## Similar projects
